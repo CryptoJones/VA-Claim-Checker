@@ -4,13 +4,24 @@ from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
 
+# Setup log file
+log_file = "log.txt"
+if not os.path.exists(log_file):
+    with open(log_file, "w") as lf:
+        lf.write("")
+
+def log(message):
+    with open(log_file, "a") as lf:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        lf.write(f"[{timestamp}] {message}\n")
+
 # Check or create results.txt
 results_file = "results.txt"
 if os.path.exists(results_file):
     with open(results_file, "r") as f:
         value = f.read().strip()
         if value == "1":
-            print("Execution halted due to value 1 in results.txt")
+            log("Execution halted due to value 1 in results.txt")
             exit()
 else:
     with open(results_file, "w") as f:
@@ -53,15 +64,15 @@ response = requests.get(url, headers=headers)
 # Check response status
 if response.status_code == 200:
     data = response.json()
-    print("JSON data received successfully.")
+    log("JSON data received successfully.")
 
     # Get today's date
     today_str = datetime.now().strftime("%Y-%m-%d")
 
-    # Search for today's date in JSON data
+    # Search for today's date in claim data
     data_str = str(data)
     if today_str in data_str:
-        print(f"Today's date ({today_str}) found in JSON data.")
+        log(f"Today's date ({today_str}) found in JSON data.")
 
         # Email details
         sender_email = "your_email@example.com"
@@ -82,8 +93,11 @@ if response.status_code == 200:
             server.starttls()
             server.login(smtp_username, smtp_password)
             server.send_message(msg)
-            print("Email notification sent successfully.")
+            log("Email notification sent successfully.")
+        
+        with open(results_file, "w") as f:
+            f.write("1")
     else:
-        print(f"Today's date ({today_str}) not found in JSON data.")
+        log(f"Today's date ({today_str}) not found in JSON data.")
 else:
-    print(f"Request failed with status code: {response.status_code}")
+    log(f"Request failed with status code: {response.status_code}")
