@@ -28,13 +28,13 @@ else:
         f.write("0")
 
 # API endpoint
-url = "https://api.va.gov/v0/benefits_claims/8008135"
+url = "https://api.va.gov/v0/benefits_claims/117877436"
 
 # UserAgent
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.6943.141 Safari/537.36"
 # _ga (QTY 3)
 VACookie_ga="MYCOOKIEDATA"
-VACookie__ga_CSLL4ZEK4L="MYCOOKIEDATA"
+VACookie_ga_CSLL4ZEK4L="MYCOOKIEDATA"
 VACookie_ga_YPB3FD0PQ9="MYCOOKIEDATA"
 # TSXXXXXXXX (QTY 3)
 VACookieTS01f27c67="MYCOOKIEDATA"
@@ -46,9 +46,9 @@ VACookieCERNER_ELIGIBLE="MYCOOKIEDATA"
 VACookievagov_saml_request_prod="MYCOOKIEDATA"
 
 headers = {
-    "User-Agent": user_agent,
+   "User-Agent": user_agent,
     "_ga": VACookie_ga,
-    "__ga_CSLL4ZEK4L": VACookie__ga_CSLL4ZEK4L,
+    "_ga_CSLL4ZEK4L": VACookie_ga_CSLL4ZEK4L,
     "_ga_YPB3FD0PQ9": VACookie_ga_YPB3FD0PQ9,
     "TS01f27c67": VACookieTS01f27c67,
     "TS0189a5f9": VACookieTS0189a5f9,
