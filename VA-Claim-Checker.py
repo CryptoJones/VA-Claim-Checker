@@ -20,7 +20,7 @@ else:
 url = "https://api.va.gov/v0/benefits_claims/8008135"
 
 # UserAgent
-user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.6943.141 Safari/537.36"
 # _ga (QTY 3)
 VACookie_ga="MYCOOKIEDATA"
 VACookie__ga_CSLL4ZEK4L="MYCOOKIEDATA"
