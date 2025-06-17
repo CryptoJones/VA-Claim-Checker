@@ -1,9 +1,13 @@
 # VA-Claim-Checker
-Checks the status of a VA Claim for update
+Checks the status of a VA Claim for update with today's date and emails you if it finds one.
 
 If the requests library isn't found you need to run 'pip install requests'
 
 NOTE: The VA's Cookie Lifetime is set to 12 hours. You will need to repopulate the cookie data in the program every twelve hours.
+
+NOTE2: If your claimed moved to the next step today and you want it to run again tommorow, you need to change the value in "results.txt" from "1" to "0"
+
+NOTE3: Everything is now logged to "log.txt" instead of writing to the console
 
 How to set cookie data. 
 
