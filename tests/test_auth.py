@@ -161,6 +161,130 @@ class TestOAuthClientSave:
         assert saved["expires_at"] >= before + 3599
 
 
+class TestOAuthClientAuthorize:
+    def _client(self, tmp_path, **kwargs):
+        c = OAuthClient("cid", "secret", "sandbox", **kwargs)
+        c.store = TokenStore(str(tmp_path / "tokens.json"))
+        return c
+
+    def _mock_server(self, auth_code=None, error=None, timeout=False):
+        """Return a mock HTTPServer that simulates a browser callback."""
+        from auth import _CallbackHandler
+        import auth as auth_mod
+
+        server = MagicMock()
+
+        def handle_request():
+            if not timeout:
+                _CallbackHandler.auth_code = auth_code
+                _CallbackHandler.error = error
+
+        server.handle_request.side_effect = handle_request
+        return server
+
+    @patch("auth.webbrowser.open")
+    @patch("auth.HTTPServer")
+    def test_successful_auth_no_mfa(self, mock_http, mock_browser, tmp_path):
+        client = self._client(tmp_path)
+        server = self._mock_server(auth_code="code-abc")
+        mock_http.return_value = server
+        with patch.object(client, "_exchange_code", return_value="tok") as mock_ex:
+            result = client._authorize()
+        mock_ex.assert_called_once_with("code-abc")
+        assert result == "tok"
+        mock_browser.assert_called_once()
+
+    @patch("auth.webbrowser.open")
+    @patch("auth.HTTPServer")
+    def test_successful_auth_after_mfa(self, mock_http, mock_browser, tmp_path):
+        """MFA adds delay but the callback eventually arrives — should succeed."""
+        client = self._client(tmp_path)
+        server = self._mock_server(auth_code="code-mfa")
+        mock_http.return_value = server
+        with patch.object(client, "_exchange_code", return_value="tok-mfa"):
+            result = client._authorize()
+        assert result == "tok-mfa"
+        assert server.timeout == 300
+
+    @patch("auth.webbrowser.open")
+    @patch("auth.HTTPServer")
+    def test_timeout_raises_clear_error(self, mock_http, mock_browser, tmp_path):
+        client = self._client(tmp_path)
+        server = self._mock_server(timeout=True)
+        mock_http.return_value = server
+        with pytest.raises(RuntimeError, match="timed out"):
+            client._authorize()
+
+    @patch("auth.webbrowser.open")
+    @patch("auth.HTTPServer")
+    def test_provider_error_raises(self, mock_http, mock_browser, tmp_path):
+        client = self._client(tmp_path)
+        server = self._mock_server(error="access_denied")
+        mock_http.return_value = server
+        with pytest.raises(RuntimeError, match="access_denied"):
+            client._authorize()
+
+    @patch("auth.webbrowser.open")
+    @patch("auth.HTTPServer", side_effect=OSError("Address already in use"))
+    def test_port_conflict_raises_clear_error(self, mock_http, mock_browser, tmp_path):
+        client = self._client(tmp_path)
+        with pytest.raises(RuntimeError, match="8080"):
+            client._authorize()
+
+    @patch("auth.webbrowser.open")
+    @patch("auth.HTTPServer")
+    def test_server_closed_after_success(self, mock_http, mock_browser, tmp_path):
+        client = self._client(tmp_path)
+        server = self._mock_server(auth_code="code-abc")
+        mock_http.return_value = server
+        with patch.object(client, "_exchange_code", return_value="tok"):
+            client._authorize()
+        server.server_close.assert_called_once()
+
+    @patch("auth.webbrowser.open")
+    @patch("auth.HTTPServer")
+    def test_server_closed_after_timeout(self, mock_http, mock_browser, tmp_path):
+        client = self._client(tmp_path)
+        server = self._mock_server(timeout=True)
+        mock_http.return_value = server
+        with pytest.raises(RuntimeError):
+            client._authorize()
+        server.server_close.assert_called_once()
+
+    @patch("auth.webbrowser.open")
+    @patch("auth.HTTPServer")
+    def test_idp_included_in_auth_url(self, mock_http, mock_browser, tmp_path):
+        client = self._client(tmp_path, idp="logingov")
+        server = self._mock_server(auth_code="code-abc")
+        mock_http.return_value = server
+        with patch.object(client, "_exchange_code", return_value="tok"):
+            client._authorize()
+        url = mock_browser.call_args[0][0]
+        assert "idp=logingov" in url
+
+    @patch("auth.webbrowser.open")
+    @patch("auth.HTTPServer")
+    def test_idme_idp_included_in_auth_url(self, mock_http, mock_browser, tmp_path):
+        client = self._client(tmp_path, idp="idme")
+        server = self._mock_server(auth_code="code-abc")
+        mock_http.return_value = server
+        with patch.object(client, "_exchange_code", return_value="tok"):
+            client._authorize()
+        url = mock_browser.call_args[0][0]
+        assert "idp=idme" in url
+
+    @patch("auth.webbrowser.open")
+    @patch("auth.HTTPServer")
+    def test_no_idp_omits_param(self, mock_http, mock_browser, tmp_path):
+        client = self._client(tmp_path)
+        server = self._mock_server(auth_code="code-abc")
+        mock_http.return_value = server
+        with patch.object(client, "_exchange_code", return_value="tok"):
+            client._authorize()
+        url = mock_browser.call_args[0][0]
+        assert "idp=" not in url
+
+
 class TestOAuthClientLogout:
     def test_clears_token_store(self, tmp_path, fresh_tokens, capsys):
         client = OAuthClient("id", "secret", "sandbox")

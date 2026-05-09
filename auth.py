@@ -42,6 +42,7 @@ def resolve_secret(config_value: str, env_var: str) -> str:
 TOKEN_FILE = ".va_tokens.json"
 REDIRECT_URI = "http://localhost:8080/callback"
 SCOPES = "claim.read openid offline_access"
+AUTH_TIMEOUT = 300  # seconds — generous window for any MFA method
 
 # Public client ID for real-mode PKCE flow (no client_secret required).
 # Users authenticate via their VA.gov account (login.gov) — no developer
@@ -158,16 +159,35 @@ class OAuthClient:
             params["idp"] = self.idp
 
         auth_url = f"{self.endpoints['auth']}?{urlencode(params)}"
-        print(f"Opening browser for VA authentication...\nIf it doesn't open, visit:\n{auth_url}\n")
+        print(
+            f"Opening browser for VA authentication...\n"
+            f"If it doesn't open, visit:\n{auth_url}\n\n"
+            f"Complete any MFA steps in your browser. "
+            f"Waiting up to {AUTH_TIMEOUT // 60} minutes...\n"
+        )
         webbrowser.open(auth_url)
 
-        server = HTTPServer(("localhost", 8080), _CallbackHandler)
-        server.handle_request()
+        try:
+            server = HTTPServer(("localhost", 8080), _CallbackHandler)
+        except OSError as e:
+            raise RuntimeError(
+                f"Could not start callback server on port 8080: {e}\n"
+                "Ensure nothing else is using port 8080 and try again."
+            )
+
+        server.timeout = AUTH_TIMEOUT
+        try:
+            server.handle_request()
+        finally:
+            server.server_close()
 
         if _CallbackHandler.error:
             raise RuntimeError(f"VA authorization failed: {_CallbackHandler.error}")
         if not _CallbackHandler.auth_code:
-            raise RuntimeError("VA authorization failed: no code received.")
+            raise RuntimeError(
+                "Authentication timed out waiting for the browser callback.\n"
+                "Complete any MFA steps and run the command again."
+            )
 
         return self._exchange_code(_CallbackHandler.auth_code)
 
