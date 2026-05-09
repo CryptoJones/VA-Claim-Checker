@@ -1,6 +1,8 @@
 # VA-Claim-Checker
 Checks the status of a VA Claim for update with today's date and emails you if it finds one.
 
+For more information on the VA API, see the documentation at https://developer.va.gov/explore.
+
 If the requests library isn't found you need to run 'pip install requests'
 
 NOTE: The VA's Cookie Lifetime is set to 12 hours. You will need to repopulate the cookie data in the program every twelve hours.
