@@ -1,1 +1,3 @@
 requests
+urllib3
+keyring  # optional: stores OAuth secrets in OS keyring instead of config.json
