@@ -29,19 +29,28 @@ The setup utility walks you through everything interactively:
 
 It writes `config.json` and optionally runs a test check when done.
 
-> **Just want to check your own claim?** Use `real` mode — no API key required. OAuth 2.0 authenticates directly with your VA.gov account. `sandbox` mode is only needed if you are developing or testing against the VA's test environment.
+> **Just want to check your own claim?** Use `real` mode — no API key required. OAuth 2.0 authenticates via your VA.gov account using **login.gov** or **ID.me**. `sandbox` mode is only needed if you are developing or testing against the VA's test environment.
 
 ---
 
 ## Authentication
 
-### Real mode — VA.gov / login.gov (no developer account needed)
+### Real mode — VA.gov (no developer account needed)
 
 ```bash
 python3 init.py
 ```
 
-Choose **real** mode and **OAuth 2.0** when prompted. A browser window opens for you to log in with your VA.gov account via login.gov. After that, tokens refresh automatically — no further interaction needed.
+Choose **real** mode and **OAuth 2.0** when prompted. You will then be asked to select an identity provider:
+
+| Provider | Notes |
+|---|---|
+| **Login.gov** | Government-issued identity, recommended |
+| **ID.me** | Widely used, supports hardware MFA keys |
+
+A browser window opens for you to log in. If your account has MFA enabled (SMS, authenticator app, security key, etc.), complete it in the browser — the tool waits up to 5 minutes. After that, tokens refresh automatically with no further interaction needed.
+
+> **Troubleshooting:** If authentication times out, ensure nothing else is using port 8080 and try again. The tool starts a temporary local server on that port to receive the login callback.
 
 ---
 
@@ -152,14 +161,14 @@ export VA_PUSHOVER_USER_KEY=your_user_key
 python3 -m pytest tests/ -v
 ```
 
-252 tests cover every module:
+262 tests cover every module:
 
 | File | Tests | What's covered |
 |---|---|---|
 | `test_init.py` | 84 | Setup utility — ask, choose, all 5 steps, main flow, keyboard interrupt |
 | `test_agent.py` | 30 | Config loading, analyze_status, run_check, multi-claim, fetch, list |
+| `test_auth.py` | 36 | TokenStore, resolve_secret, OAuthClient token/refresh/authorize/MFA/timeout/port conflict/idp |
 | `test_va_api_client.py` | 27 | Mock + real mode, legacy + v2 URLs, headers, retry config |
-| `test_auth.py` | 25 | TokenStore, resolve_secret, OAuthClient token/refresh/fallback/logout |
 | `test_cli.py` | 24 | All 6 subcommands, multi-claim flag, watch loop, help output |
 | `test_state.py` | 24 | StateStore get/save/has_changed/diff_summary/reset |
 | `test_notifier.py` | 20 | Mock output, SMTP, ntfy, Pushover, env var overrides |
