@@ -7,3 +7,4 @@ __pycache__/
 agent_log.txt
 results.txt
 .venv/
+config.json
