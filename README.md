@@ -113,7 +113,18 @@ export VA_PUSHOVER_USER_KEY=your_user_key
 python3 -m pytest tests/ -v
 ```
 
-168 tests cover every module: auth, state, API client, response parser, notifier, agent, and CLI.
+252 tests cover every module:
+
+| File | Tests | What's covered |
+|---|---|---|
+| `test_init.py` | 84 | Setup utility — ask, choose, all 5 steps, main flow, keyboard interrupt |
+| `test_agent.py` | 30 | Config loading, analyze_status, run_check, multi-claim, fetch, list |
+| `test_va_api_client.py` | 27 | Mock + real mode, legacy + v2 URLs, headers, retry config |
+| `test_auth.py` | 25 | TokenStore, resolve_secret, OAuthClient token/refresh/fallback/logout |
+| `test_cli.py` | 24 | All 6 subcommands, multi-claim flag, watch loop, help output |
+| `test_state.py` | 24 | StateStore get/save/has_changed/diff_summary/reset |
+| `test_notifier.py` | 20 | Mock output, SMTP, ntfy, Pushover, env var overrides |
+| `test_va_response_parser.py` | 18 | normalize() — flat passthrough, v2 response, missing fields, contentions |
 
 ---
 
