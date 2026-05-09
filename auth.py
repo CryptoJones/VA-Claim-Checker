@@ -1,5 +1,8 @@
+import base64
+import hashlib
 import json
 import os
+import secrets
 import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -40,6 +43,11 @@ TOKEN_FILE = ".va_tokens.json"
 REDIRECT_URI = "http://localhost:8080/callback"
 SCOPES = "claim.read openid offline_access"
 
+# Public client ID for real-mode PKCE flow (no client_secret required).
+# Users authenticate via their VA.gov account (login.gov) — no developer
+# registration needed.
+REAL_CLIENT_ID = os.environ.get("VA_CLIENT_ID", "")
+
 ENDPOINTS = {
     "real": {
         "auth":  "https://api.va.gov/oauth2/claims/v1/authorization",
@@ -50,6 +58,13 @@ ENDPOINTS = {
         "token": "https://sandbox-api.va.gov/oauth2/claims/v1/token",
     },
 }
+
+
+def _pkce_pair() -> tuple[str, str]:
+    verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).rstrip(b"=").decode()
+    digest = hashlib.sha256(verifier.encode()).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+    return verifier, challenge
 
 
 class TokenStore:
@@ -101,10 +116,12 @@ class _CallbackHandler(BaseHTTPRequestHandler):
 
 class OAuthClient:
     def __init__(self, client_id: str, client_secret: str, environment: str = "sandbox"):
-        self.client_id = resolve_secret(client_id, "VA_CLIENT_ID")
+        self.client_id = resolve_secret(client_id, "VA_CLIENT_ID") or REAL_CLIENT_ID
         self.client_secret = resolve_secret(client_secret, "VA_CLIENT_SECRET")
+        self.pkce = not self.client_secret  # use PKCE when no client_secret is available
         self.endpoints = ENDPOINTS.get(environment, ENDPOINTS["sandbox"])
         self.store = TokenStore()
+        self._pkce_verifier: Optional[str] = None
 
     def get_access_token(self) -> str:
         if self.store.is_valid():
@@ -129,6 +146,12 @@ class OAuthClient:
             "response_type": "code",
             "scope": SCOPES,
         }
+
+        if self.pkce:
+            self._pkce_verifier, challenge = _pkce_pair()
+            params["code_challenge"] = challenge
+            params["code_challenge_method"] = "S256"
+
         auth_url = f"{self.endpoints['auth']}?{urlencode(params)}"
         print(f"Opening browser for VA authentication...\nIf it doesn't open, visit:\n{auth_url}\n")
         webbrowser.open(auth_url)
@@ -144,23 +167,31 @@ class OAuthClient:
         return self._exchange_code(_CallbackHandler.auth_code)
 
     def _exchange_code(self, code: str) -> str:
-        resp = requests.post(self.endpoints["token"], data={
+        data: dict = {
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": REDIRECT_URI,
             "client_id": self.client_id,
-            "client_secret": self.client_secret,
-        })
+        }
+        if self.pkce and self._pkce_verifier:
+            data["code_verifier"] = self._pkce_verifier
+        else:
+            data["client_secret"] = self.client_secret
+
+        resp = requests.post(self.endpoints["token"], data=data)
         resp.raise_for_status()
         return self._save(resp.json())
 
     def _refresh(self, refresh_token: str) -> str:
-        resp = requests.post(self.endpoints["token"], data={
+        data: dict = {
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
             "client_id": self.client_id,
-            "client_secret": self.client_secret,
-        })
+        }
+        if not self.pkce:
+            data["client_secret"] = self.client_secret
+
+        resp = requests.post(self.endpoints["token"], data=data)
         resp.raise_for_status()
         return self._save(resp.json())
 

@@ -35,19 +35,19 @@ It writes `config.json` and optionally runs a test check when done.
 
 ## Authentication
 
-### OAuth 2.0 (recommended)
+### Real mode — VA.gov / login.gov (no developer account needed)
 
 ```bash
 python3 init.py
 ```
 
-Choose **real** mode and **OAuth 2.0** when prompted. A browser window will open for your VA.gov login. After that, tokens refresh automatically — no further interaction needed. No API key or developer account required.
+Choose **real** mode and **OAuth 2.0** when prompted. A browser window opens for you to log in with your VA.gov account via login.gov. After that, tokens refresh automatically — no further interaction needed.
 
 ---
 
 ### Sandbox mode (developers only)
 
-Sandbox mode connects to VA's test environment with synthetic claim data. It requires a separate developer API key and is not needed to check your real claims.
+Sandbox mode connects to VA's test environment with synthetic claim data. It requires a developer API key and is not needed to check your real claims.
 
 #### 1. Apply for a sandbox API key
 

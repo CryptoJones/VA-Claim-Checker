@@ -55,8 +55,8 @@ def step_mode():
     banner("Step 1 of 5 — API Mode")
     return choose("Which mode should the checker run in?", [
         ("mock",    "Test locally — no VA API calls, no credentials needed"),
-        ("sandbox", "VA sandbox — safe test environment, requires dev credentials"),
-        ("real",    "Production  — your live VA account, requires dev credentials"),
+        ("real",    "Production  — your live VA account, login via VA.gov (login.gov)"),
+        ("sandbox", "Developer   — VA test environment, requires a developer API key"),
     ])
 
 
@@ -65,13 +65,6 @@ def step_auth(mode):
         return "none", {}, {}
 
     banner("Step 2 of 5 — Authentication")
-    info("Register a free developer account at: https://developer.va.gov/apply")
-    info("Select the Benefits Claims API and use redirect URI: http://localhost:8080/callback\n")
-
-    method = choose("Authentication method:", [
-        ("oauth",   "Recommended — browser login once, tokens refresh automatically"),
-        ("cookies", "Legacy      — manual cookie extraction from Chrome every 12 hours"),
-    ])
 
     oauth_cfg = {"client_id": "", "client_secret": ""}
     cookies = {k: "" for k in [
@@ -80,18 +73,43 @@ def step_auth(mode):
         "api_session", "CERNER_ELIGIBLE", "vagov_saml_request_prod",
     ]}
 
-    if method == "oauth":
-        oauth_cfg["client_id"]     = ask("Client ID (from developer.va.gov)")
-        oauth_cfg["client_secret"] = ask("Client Secret", secret=True)
+    if mode == "real":
+        method = choose("Authentication method:", [
+            ("oauth",   "Recommended — log in once via VA.gov (login.gov), tokens refresh automatically"),
+            ("cookies", "Legacy      — manual cookie extraction from Chrome every 12 hours"),
+        ])
+        if method == "oauth":
+            info("A browser will open for you to log in with your VA.gov account.")
+            info("No developer credentials needed.\n")
+        else:
+            print()
+            info("Cookie extraction steps:")
+            info("1. Install the 'Cookie Viewer' Chrome extension")
+            info("2. Log in at https://www.va.gov/track-claims/your-claims/")
+            info("3. Open https://api.va.gov/v0/benefits_claims/ in a new tab")
+            info("4. Click Cookie Viewer and paste each value below.\n")
+            for key in cookies:
+                cookies[key] = ask(f"  Cookie: {key}", default="")
     else:
-        print()
-        info("Cookie extraction steps:")
-        info("1. Install the 'Cookie Viewer' Chrome extension")
-        info("2. Log in at https://www.va.gov/track-claims/your-claims/")
-        info("3. Open https://api.va.gov/v0/benefits_claims/ in a new tab")
-        info("4. Click Cookie Viewer and paste each value below.\n")
-        for key in cookies:
-            cookies[key] = ask(f"  Cookie: {key}", default="")
+        # sandbox — developer credentials required
+        method = choose("Authentication method:", [
+            ("oauth",   "Recommended — browser login once, tokens refresh automatically"),
+            ("cookies", "Legacy      — manual cookie extraction from Chrome every 12 hours"),
+        ])
+        info("Register a developer account at: https://developer.va.gov/apply")
+        info("Select the Benefits Claims API and use redirect URI: http://localhost:8080/callback\n")
+        if method == "oauth":
+            oauth_cfg["client_id"]     = ask("Client ID (from developer.va.gov)")
+            oauth_cfg["client_secret"] = ask("Client Secret", secret=True)
+        else:
+            print()
+            info("Cookie extraction steps:")
+            info("1. Install the 'Cookie Viewer' Chrome extension")
+            info("2. Log in at https://www.va.gov/track-claims/your-claims/")
+            info("3. Open https://api.va.gov/v0/benefits_claims/ in a new tab")
+            info("4. Click Cookie Viewer and paste each value below.\n")
+            for key in cookies:
+                cookies[key] = ask(f"  Cookie: {key}", default="")
 
     return method, oauth_cfg, cookies
 

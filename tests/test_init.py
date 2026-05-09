@@ -144,16 +144,16 @@ class TestStepMode:
         monkeypatch.setattr("builtins.input", lambda _: "1")
         assert step_mode() == "mock"
 
-    def test_returns_sandbox(self, monkeypatch):
-        monkeypatch.setattr("builtins.input", lambda _: "2")
-        assert step_mode() == "sandbox"
-
     def test_returns_real(self, monkeypatch):
-        monkeypatch.setattr("builtins.input", lambda _: "3")
+        monkeypatch.setattr("builtins.input", lambda _: "2")
         assert step_mode() == "real"
 
+    def test_returns_sandbox(self, monkeypatch):
+        monkeypatch.setattr("builtins.input", lambda _: "3")
+        assert step_mode() == "sandbox"
+
     def test_retries_on_invalid(self, monkeypatch):
-        inputs = make_inputs("0", "5", "abc", "2")
+        inputs = make_inputs("0", "5", "abc", "3")
         monkeypatch.setattr("builtins.input", inputs)
         assert step_mode() == "sandbox"
 
@@ -547,8 +547,8 @@ class TestMain:
 
     def test_sandbox_mode_sets_sandbox_environment(self, monkeypatch, tmp_path):
         monkeypatch.chdir(tmp_path)
-        # mode=sandbox, auth=oauth, cid, csec, claim=default, notif=none, skip test
-        monkeypatch.setattr("builtins.input", make_inputs("2", "1", "my-cid", "", "1", "n"))
+        # mode=sandbox(3), auth=oauth(1), cid, csec, claim=default, notif=none, skip test
+        monkeypatch.setattr("builtins.input", make_inputs("3", "1", "my-cid", "", "1", "n"))
         monkeypatch.setattr("getpass.getpass", lambda _: "my-secret")
         main()
         data = json.loads((tmp_path / "config.json").read_text())
@@ -556,8 +556,8 @@ class TestMain:
 
     def test_real_mode_sets_real_environment(self, monkeypatch, tmp_path):
         monkeypatch.chdir(tmp_path)
-        monkeypatch.setattr("builtins.input", make_inputs("3", "1", "my-cid", "", "1", "n"))
-        monkeypatch.setattr("getpass.getpass", lambda _: "my-secret")
+        # mode=real(2), auth=oauth(1), claim=default, notif=none, skip test
+        monkeypatch.setattr("builtins.input", make_inputs("2", "1", "", "1", "n"))
         main()
         data = json.loads((tmp_path / "config.json").read_text())
         assert data["environment"] == "real"
