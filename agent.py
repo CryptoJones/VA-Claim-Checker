@@ -1,19 +1,23 @@
 import json
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from notifier import Notifier
+from state import StateStore
 from va_api_client import VAApiClient
+from va_response_parser import normalize
+
 
 class VAClaimAgent:
     def __init__(self, config_file: str = "config.json"):
         self.config = self.load_config(config_file)
         self.setup_logging()
-        self.results_file = self.config.get("results_file", "results.txt")
-        self.ensure_results_file()
+        self.state = StateStore(self.config.get("state_file", ".va_state.json"))
         self.api_client = VAApiClient(
             mode=self.config.get("mode", "mock"),
+            environment=self.config.get("environment", "sandbox"),
+            oauth_config=self.config.get("oauth"),
             cookies=self.config.get("cookies", {}),
             user_agent=self.config.get("user_agent"),
         )
@@ -23,11 +27,12 @@ class VAClaimAgent:
         if os.path.exists(config_file):
             with open(config_file, "r") as f:
                 return json.load(f)
-
         return {
             "mode": "mock",
+            "environment": "sandbox",
             "claim_id": "117877436",
             "send_email": False,
+            "oauth": {"client_id": "", "client_secret": ""},
             "cookies": {},
             "email": {
                 "sender": "your_email@example.com",
@@ -35,71 +40,75 @@ class VAClaimAgent:
                 "smtp_server": "smtp.example.com",
                 "smtp_port": 587,
                 "username": "your_email@example.com",
-                "password": "your_password"
+                "password": "your_password",
             },
-            "results_file": "results.txt",
-            "log_file": "agent_log.txt"
+            "state_file": ".va_state.json",
+            "log_file": "agent_log.txt",
         }
 
     def setup_logging(self) -> None:
         logging.basicConfig(
             filename=self.config.get("log_file", "agent_log.txt"),
             level=logging.INFO,
-            format="%(asctime)s - %(levelname)s - %(message)s"
+            format="%(asctime)s - %(levelname)s - %(message)s",
         )
 
-    def ensure_results_file(self) -> None:
-        if not os.path.exists(self.results_file):
-            with open(self.results_file, "w") as f:
-                f.write("0")
+    def analyze_status(self, claim: Dict[str, Any]) -> str:
+        lines = [
+            f"Claim {claim['claim_id']} — {claim.get('claim_type', 'Compensation')}",
+            f"Status:   {claim['status']}",
+            f"Stage:    {claim['stage']}",
+            f"Updated:  {claim['last_updated']}",
+        ]
+        if claim.get("estimated_decision_date"):
+            lines.append(f"Est. decision date: {claim['estimated_decision_date']}")
+        if claim.get("decision_letter_sent"):
+            lines.append("Decision letter has been sent.")
+        if claim.get("documents_needed"):
+            lines.append("Action required: VA needs additional documents.")
+        if claim.get("phase_went_back"):
+            lines.append("Note: claim was returned to a previous phase.")
+        if claim.get("contentions") and claim["contentions"] != "None listed":
+            lines.append(f"Contentions: {claim['contentions']}")
+        return "\n".join(lines)
 
-    def check_halt(self) -> bool:
-        with open(self.results_file, "r") as f:
-            value = f.read().strip()
-        if value == "1":
-            self.log("Execution halted due to value 1 in results.txt")
-            return True
-        return False
+    def _check_one(self, claim_id: str) -> None:
+        self.log(f"Checking claim {claim_id}")
+        raw = self.api_client.get_claim(claim_id)
+        claim = normalize(raw)
+        analysis = self.analyze_status(claim)
+        self.log(f"Analysis:\n{analysis}")
 
-    def analyze_status(self, data: Dict[str, Any]) -> str:
-        status = data.get("status", "Unknown")
-        last_updated = data.get("last_updated", "unknown")
-        details = data.get("details", "No details available.")
-        stage = data.get("stage", "Unknown stage")
-
-        return (
-            f"Claim {data.get('claim_id', 'unknown')} is currently '{status}'\n"
-            f"Stage: {stage}\n"
-            f"Last updated: {last_updated}\n"
-            f"Details: {details}"
-        )
-
-    def run_check(self) -> None:
-        if self.check_halt():
-            return
-
-        claim_id = str(self.config.get("claim_id", "117877436"))
-        self.log(f"Starting claim status check for claim ID {claim_id}")
-
-        data = self.api_client.get_claim(claim_id)
-        analysis = self.analyze_status(data)
-        self.log(f"Claim analysis:\n{analysis}")
-
-        if self.api_client.has_update_today(data):
-            self.log("Today's date found in claim data — sending notification.")
-            self.notifier.notify(analysis)
-            with open(self.results_file, "w") as f:
-                f.write("1")
+        if self.state.has_changed(claim_id, claim):
+            diff = self.state.diff_summary(claim_id, claim)
+            self.log(f"Change detected:\n{diff}")
+            message = f"{analysis}\n\n--- What changed ---\n{diff}"
+            self.notifier.notify(message, claim_id=claim_id)
+            self.state.save(claim_id, claim)
         else:
-            self.log("No update today; no notification sent.")
+            self.log(f"No change for claim {claim_id}.")
+
+    def run_check(self, claim_ids: List[str] = None) -> None:
+        ids = claim_ids or self._configured_claim_ids()
+        for claim_id in ids:
+            self._check_one(str(claim_id))
+
+    def _configured_claim_ids(self) -> List[str]:
+        raw = self.config.get("claim_id", "117877436")
+        if isinstance(raw, list):
+            return [str(c) for c in raw]
+        return [str(raw)]
 
     def fetch_claim(self, claim_id: str = None) -> dict:
-        claim_id = claim_id or str(self.config.get("claim_id", "117877436"))
-        return self.api_client.get_claim(claim_id)
+        claim_id = claim_id or self._configured_claim_ids()[0]
+        return normalize(self.api_client.get_claim(claim_id))
 
     def get_claim_analysis(self, claim_id: str = None) -> str:
-        data = self.fetch_claim(claim_id)
-        return self.analyze_status(data)
+        return self.analyze_status(self.fetch_claim(claim_id))
+
+    def list_claims(self, veteran_id: str = None) -> List[dict]:
+        raw_list = self.api_client.list_claims(veteran_id)
+        return [normalize(item) for item in raw_list]
 
     def log(self, message: str) -> None:
         logging.info(message)
