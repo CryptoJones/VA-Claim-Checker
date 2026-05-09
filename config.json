@@ -2,30 +2,17 @@
     "mode": "mock",
     "environment": "sandbox",
     "claim_id": "117877436",
-    "oauth": {
-        "client_id": "YOUR_CLIENT_ID",
-        "client_secret": "YOUR_CLIENT_SECRET"
-    },
+    "oauth": {},
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.6943.141 Safari/537.36",
-    "cookies": {
-        "_ga": "PASTE_COOKIE_VALUE_HERE",
-        "_ga_CSLL4ZEK4L": "PASTE_COOKIE_VALUE_HERE",
-        "_ga_YPB3FD0PQ9": "PASTE_COOKIE_VALUE_HERE",
-        "TS01f27c67": "PASTE_COOKIE_VALUE_HERE",
-        "TS0189a5f9": "PASTE_COOKIE_VALUE_HERE",
-        "TS014c0a39": "PASTE_COOKIE_VALUE_HERE",
-        "api_session": "PASTE_COOKIE_VALUE_HERE",
-        "CERNER_ELIGIBLE": "PASTE_COOKIE_VALUE_HERE",
-        "vagov_saml_request_prod": "PASTE_COOKIE_VALUE_HERE"
-    },
+    "cookies": {},
     "send_email": false,
     "email": {
-        "sender": "your_email@example.com",
-        "receiver": "recipient_email@example.com",
-        "smtp_server": "smtp.example.com",
+        "sender": "",
+        "receiver": "",
+        "smtp_server": "",
         "smtp_port": 587,
-        "username": "your_email@example.com",
-        "password": "your_password"
+        "username": "",
+        "password": ""
     },
     "push": {
         "enabled": false,
