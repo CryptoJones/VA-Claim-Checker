@@ -35,18 +35,47 @@ It writes `config.json` and optionally runs a test check when done.
 
 ### OAuth 2.0 (recommended)
 
-1. Register a free developer account at https://developer.va.gov/apply
-2. Request access to the **Benefits Claims** API
-3. Set the redirect URI to `http://localhost:8080/callback`
-4. VA will email you a `client_id` and `client_secret`
-5. Enter them when `init.py` asks — or set environment variables:
+#### 1. Apply for a sandbox API key
+
+1. Go to https://developer.va.gov/apply and create a free developer account
+2. Click **Request API Access** and select **Benefits Claims**
+3. When prompted for a redirect URI, enter exactly: `http://localhost:8080/callback`
+4. Submit the form — VA will email you a `client_id` and `client_secret` (typically within a few business days)
+
+#### 2. Add credentials to your config
+
+Copy the example config and fill in your credentials:
+
+```bash
+cp config.example.json config.json
+```
+
+Then edit `config.json`:
+
+```json
+"mode": "sandbox",
+"oauth": {
+    "client_id": "your_client_id",
+    "client_secret": "your_client_secret"
+}
+```
+
+Or use environment variables instead of storing credentials in the file:
 
 ```bash
 export VA_CLIENT_ID=your_client_id
 export VA_CLIENT_SECRET=your_client_secret
 ```
 
-On first run a browser window opens for your VA.gov login. After that, tokens refresh automatically — no further interaction needed.
+#### 3. Authenticate
+
+```bash
+python3 init.py
+```
+
+Choose **sandbox** mode and **OAuth 2.0** when prompted. A browser window will open for your VA.gov login. After that, tokens refresh automatically — no further interaction needed.
+
+> **Switching to real mode:** Once you have verified everything works in sandbox, change `"mode": "real"` in `config.json` and re-run `python3 init.py` to re-authenticate against the live VA API.
 
 ### Browser cookies (legacy)
 
@@ -139,6 +168,7 @@ va_response_parser.py — normalizes Lighthouse v2 API response fields
 auth.py               — OAuth 2.0 flow, token storage, auto-refresh
 state.py              — persists last-known claim state across runs
 notifier.py           — email, ntfy.sh, and Pushover notifications
-config.json           — your configuration (created by init.py)
+config.example.json   — template configuration with placeholder values
+config.json           — your configuration (created by init.py, gitignored)
 tests/                — pytest test suite
 ```
