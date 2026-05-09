@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.va_tokens.json
+.va_state.json
+agent_log.txt
+results.txt
+.venv/
