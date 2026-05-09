@@ -22,18 +22,32 @@ python3 init.py
 
 The setup utility walks you through everything interactively:
 
-- **API mode** — `mock` (no credentials, good for a first run), `sandbox` (VA test environment), or `real` (your live VA account)
+- **API mode** — `mock` (no credentials, good for a first run), `real` (your live VA account), or `sandbox` (VA test environment — developers only)
 - **Authentication** — OAuth 2.0 (recommended) or browser cookies (legacy fallback)
 - **Claim ID** — one or multiple
 - **Notifications** — email, ntfy.sh, Pushover, or none
 
 It writes `config.json` and optionally runs a test check when done.
 
+> **Just want to check your own claim?** Use `real` mode — no API key required. OAuth 2.0 authenticates directly with your VA.gov account. `sandbox` mode is only needed if you are developing or testing against the VA's test environment.
+
 ---
 
 ## Authentication
 
 ### OAuth 2.0 (recommended)
+
+```bash
+python3 init.py
+```
+
+Choose **real** mode and **OAuth 2.0** when prompted. A browser window will open for your VA.gov login. After that, tokens refresh automatically — no further interaction needed. No API key or developer account required.
+
+---
+
+### Sandbox mode (developers only)
+
+Sandbox mode connects to VA's test environment with synthetic claim data. It requires a separate developer API key and is not needed to check your real claims.
 
 #### 1. Apply for a sandbox API key
 
@@ -42,15 +56,13 @@ It writes `config.json` and optionally runs a test check when done.
 3. When prompted for a redirect URI, enter exactly: `http://localhost:8080/callback`
 4. Submit the form — VA will email you a `client_id` and `client_secret` (typically within a few business days)
 
-#### 2. Add credentials to your config
-
-Copy the example config and fill in your credentials:
+#### 2. Configure credentials
 
 ```bash
 cp config.example.json config.json
 ```
 
-Then edit `config.json`:
+Edit `config.json`:
 
 ```json
 "mode": "sandbox",
@@ -60,7 +72,7 @@ Then edit `config.json`:
 }
 ```
 
-Or use environment variables instead of storing credentials in the file:
+Or use environment variables instead:
 
 ```bash
 export VA_CLIENT_ID=your_client_id
@@ -73,9 +85,7 @@ export VA_CLIENT_SECRET=your_client_secret
 python3 init.py
 ```
 
-Choose **sandbox** mode and **OAuth 2.0** when prompted. A browser window will open for your VA.gov login. After that, tokens refresh automatically — no further interaction needed.
-
-> **Switching to real mode:** Once you have verified everything works in sandbox, change `"mode": "real"` in `config.json` and re-run `python3 init.py` to re-authenticate against the live VA API.
+Choose **sandbox** mode and **OAuth 2.0** when prompted.
 
 ### Browser cookies (legacy)
 
