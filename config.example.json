@@ -4,7 +4,8 @@
     "claim_id": "YOUR_CLAIM_ID",
     "oauth": {
         "client_id": "YOUR_CLIENT_ID",
-        "client_secret": "YOUR_CLIENT_SECRET"
+        "client_secret": "YOUR_CLIENT_SECRET",
+        "idp": "logingov"
     },
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.6943.141 Safari/537.36",
     "cookies": {

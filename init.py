@@ -75,11 +75,16 @@ def step_auth(mode):
 
     if mode == "real":
         method = choose("Authentication method:", [
-            ("oauth",   "Recommended — log in once via VA.gov (login.gov), tokens refresh automatically"),
+            ("oauth",   "Recommended — log in once via VA.gov, tokens refresh automatically"),
             ("cookies", "Legacy      — manual cookie extraction from Chrome every 12 hours"),
         ])
         if method == "oauth":
-            info("A browser will open for you to log in with your VA.gov account.")
+            idp = choose("Identity provider:", [
+                ("logingov", "Login.gov   — government identity, recommended"),
+                ("idme",     "ID.me       — widely used, supports MFA"),
+            ])
+            oauth_cfg["idp"] = idp
+            info(f"A browser will open for you to log in via {'Login.gov' if idp == 'logingov' else 'ID.me'}.")
             info("No developer credentials needed.\n")
         else:
             print()

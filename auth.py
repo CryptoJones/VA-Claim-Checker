@@ -115,10 +115,12 @@ class _CallbackHandler(BaseHTTPRequestHandler):
 
 
 class OAuthClient:
-    def __init__(self, client_id: str, client_secret: str, environment: str = "sandbox"):
+    def __init__(self, client_id: str, client_secret: str,
+                 environment: str = "sandbox", idp: Optional[str] = None):
         self.client_id = resolve_secret(client_id, "VA_CLIENT_ID") or REAL_CLIENT_ID
         self.client_secret = resolve_secret(client_secret, "VA_CLIENT_SECRET")
         self.pkce = not self.client_secret  # use PKCE when no client_secret is available
+        self.idp = idp  # "logingov" or "idme"; None lets VA.gov show the provider picker
         self.endpoints = ENDPOINTS.get(environment, ENDPOINTS["sandbox"])
         self.store = TokenStore()
         self._pkce_verifier: Optional[str] = None
@@ -151,6 +153,9 @@ class OAuthClient:
             self._pkce_verifier, challenge = _pkce_pair()
             params["code_challenge"] = challenge
             params["code_challenge_method"] = "S256"
+
+        if self.idp:
+            params["idp"] = self.idp
 
         auth_url = f"{self.endpoints['auth']}?{urlencode(params)}"
         print(f"Opening browser for VA authentication...\nIf it doesn't open, visit:\n{auth_url}\n")

@@ -65,8 +65,9 @@ class VAApiClient:
         if oauth_config and oauth_config.get("client_id") not in (None, "YOUR_CLIENT_ID", ""):
             self.oauth = OAuthClient(
                 client_id=oauth_config["client_id"],
-                client_secret=oauth_config["client_secret"],
+                client_secret=oauth_config.get("client_secret", ""),
                 environment=environment,
+                idp=oauth_config.get("idp"),
             )
         self._session = _session()
 

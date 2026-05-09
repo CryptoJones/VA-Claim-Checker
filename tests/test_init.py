@@ -192,8 +192,8 @@ class TestStepAuth:
         assert oauth["client_secret"] == "my-secret"
 
     def test_oauth_cookies_are_empty(self, monkeypatch):
-        monkeypatch.setattr("builtins.input", make_inputs("1", "cid"))
-        monkeypatch.setattr("getpass.getpass", lambda _: "csec")
+        # auth=oauth(1), idp=logingov(1)
+        monkeypatch.setattr("builtins.input", make_inputs("1", "1"))
         _, _, cookies = step_auth("real")
         assert all(v == "" for v in cookies.values())
 
@@ -556,8 +556,8 @@ class TestMain:
 
     def test_real_mode_sets_real_environment(self, monkeypatch, tmp_path):
         monkeypatch.chdir(tmp_path)
-        # mode=real(2), auth=oauth(1), claim=default, notif=none, skip test
-        monkeypatch.setattr("builtins.input", make_inputs("2", "1", "", "1", "n"))
+        # mode=real(2), auth=oauth(1), idp=logingov(1), claim=default, notif=none, skip test
+        monkeypatch.setattr("builtins.input", make_inputs("2", "1", "1", "", "1", "n"))
         main()
         data = json.loads((tmp_path / "config.json").read_text())
         assert data["environment"] == "real"
